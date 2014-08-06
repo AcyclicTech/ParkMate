@@ -96,6 +96,7 @@ int id buyButton 0x7f07000a
 int id buy_now 0x7f07000f
 int id buy_with_google 0x7f07000e
 int id classic 0x7f070011
+int id clear 0x7f070019
 int id container 0x7f070014
 int id grayscale 0x7f070012
 int id holo_dark 0x7f070005
@@ -110,7 +111,11 @@ int id normal 0x7f070001
 int id production 0x7f070007
 int id sandbox 0x7f070008
 int id satellite 0x7f070002
+int id save 0x7f070018
+int id search 0x7f07001c
 int id selectionDetails 0x7f07000b
+int id share 0x7f07001a
+int id share_meter 0x7f07001b
 int id strict_sandbox 0x7f070009
 int id terrain 0x7f070003
 int id wrap_content 0x7f07000d
@@ -126,6 +131,8 @@ int string auth_client_needs_update_title 0x7f050003
 int string auth_client_play_services_err_notification_msg 0x7f050004
 int string auth_client_requested_by_msg 0x7f050005
 int string auth_client_using_bad_version_title 0x7f050000
+int string cancel 0x7f05002a
+int string clear 0x7f050024
 int string common_google_play_services_enable_button 0x7f050011
 int string common_google_play_services_enable_text 0x7f050010
 int string common_google_play_services_enable_title 0x7f05000f
@@ -151,7 +158,13 @@ int string common_google_play_services_update_text 0x7f050013
 int string common_google_play_services_update_title 0x7f050012
 int string common_signin_button_text 0x7f05001d
 int string common_signin_button_text_long 0x7f05001e
+int string confirm 0x7f050028
 int string hello_world 0x7f050021
+int string ok 0x7f050029
+int string save 0x7f050023
+int string search 0x7f050026
+int string share 0x7f050025
+int string share_meter 0x7f050027
 int string wallet_buy_button_place_holder 0x7f05001f
 int style AppBaseTheme 0x7f040005
 int style AppTheme 0x7f040006

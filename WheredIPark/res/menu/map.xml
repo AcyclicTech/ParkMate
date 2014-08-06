@@ -7,5 +7,10 @@
         android:orderInCategory="100"
         android:showAsAction="never"
         android:title="@string/action_settings"/>
+    <item android:id="@+id/save" android:title="@string/save"></item>
+    <item android:id="@+id/clear" android:title="@string/clear"></item>
+    <item android:id="@+id/share" android:title="@string/share"></item>
+    <item android:id="@+id/share_meter" android:title="@string/share_meter"></item><item android:id="@+id/search" android:title="@string/search"></item>
+    
 
 </menu>

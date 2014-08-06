@@ -4,19 +4,23 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.Dialog;
-import android.app.FragmentTransaction;
-import android.content.Context;
+import android.content.DialogInterface;
+import android.content.DialogInterface.OnClickListener;
+import android.content.SharedPreferences;
+import android.content.SharedPreferences.Editor;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
-import android.location.LocationManager;
 import android.os.Bundle;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesClient;
@@ -30,6 +34,7 @@ import com.google.android.gms.maps.GoogleMap.OnMapClickListener;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.MapsInitializer;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 public class MapActivity extends Activity implements
@@ -41,6 +46,7 @@ public class MapActivity extends Activity implements
 	private LocationClient mLocationClient;
 	private Location mCurrentLocation;
 	private LocationRequest mLocationRequest;
+	private Marker curMarker;
 	private final static int CONNECTION_FAILURE_RESOLUTION_REQUEST = 9000;
 
 	// Milliseconds per second
@@ -62,10 +68,6 @@ public class MapActivity extends Activity implements
 		setContentView(R.layout.fragment_map);
 		MapsInitializer.initialize(this);
 
-		LocationManager locationManager = (LocationManager) this
-				.getSystemService(Context.LOCATION_SERVICE);
-		locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0,
-				0, this);
 		mLocationClient = new LocationClient(this, this, this);
 		mLocationRequest = LocationRequest.create();
 
@@ -75,14 +77,6 @@ public class MapActivity extends Activity implements
 		mLocationRequest.setInterval(UPDATE_INTERVAL);
 		// Set the fastest update interval to 1 second
 		mLocationRequest.setFastestInterval(FASTEST_INTERVAL);
-
-//		if (savedInstanceState == null) {
-//			MapFragment mMapFragment = MapFragment.newInstance();
-//			FragmentTransaction fragmentTransaction = getFragmentManager()
-//					.beginTransaction();
-//			fragmentTransaction.add(R.id.map, mMapFragment);
-//			fragmentTransaction.commit();
-//		}
 
 		map = ((MapFragment) getFragmentManager().findFragmentById(R.id.map))
 				.getMap();
@@ -95,43 +89,60 @@ public class MapActivity extends Activity implements
 			d.show();
 		}
 
-//		LayoutInflater inflater = (LayoutInflater) getApplicationContext()
-//				.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-//		View view = inflater.inflate(R.layout.activity_map, null, false);
-//
-		// MapView mapView = (MapView) view.findViewById(R.id.mapView);
-		// mapView.onCreate(savedInstanceState);
-		// map = mapView.getMap();
 		map.setMyLocationEnabled(true);
 
 		map.setOnMapClickListener(new OnMapClickListener() {
 
 			@Override
 			public void onMapClick(LatLng latLng) {
-				Geocoder geocoder = new Geocoder(getApplicationContext(),
-						Locale.getDefault());
-
-				List<Address> addresses = null;
-				try {
-					/*
-					 * Return 1 address.
-					 */
-					addresses = geocoder.getFromLocation(latLng.latitude,
-							latLng.longitude, 1);
-					if(addresses.size() > 0){
-						StringBuffer addressName = new StringBuffer();
-						Address add = addresses.get(0);
-						for(int i = 0; i < add.getMaxAddressLineIndex(); i++){
-							addressName.append(add.getAddressLine(i)).append('\n');
-						}
-						map.addMarker(new MarkerOptions().position(latLng).title(
-								addressName.toString()));
-					}
-				} catch (IOException e1) {
-				}
-
+				String address = getAddress(latLng);
+				map.addMarker(new MarkerOptions().position(latLng).title(address));
+				//save new point
+				//TODO: add save dialog
+				saveCurrent(latLng, address, "note");
 			}
 		});
+		SharedPreferences sp = getPreferences(MODE_PRIVATE);
+		if(sp.contains("Current Point")){
+			String pointString = sp.getString("Current Point", null);
+			try {
+				JSONObject obj = new JSONObject(pointString);
+				double latD = obj.getDouble("lat");
+				double lonD = obj.getDouble("long");
+				String note = obj.optString("note");
+				String address = obj.getString("address");
+				LatLng latLng = new LatLng(latD, lonD);
+				curMarker = map.addMarker(new MarkerOptions().position(latLng).title(address));
+			} catch (JSONException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+	}
+	
+	private String getAddress(LatLng latLng){
+		String address = "";
+		Geocoder geocoder = new Geocoder(getApplicationContext(),
+				Locale.getDefault());
+
+		List<Address> addresses = null;
+		try {
+			/*
+			 * Return 1 address.
+			 */
+			addresses = geocoder.getFromLocation(latLng.latitude,
+					latLng.longitude, 1);
+			if(addresses.size() > 0){
+				StringBuffer addressName = new StringBuffer();
+				Address add = addresses.get(0);
+				for(int i = 0; i < add.getMaxAddressLineIndex(); i++){
+					addressName.append(add.getAddressLine(i)).append('\n');
+				}
+				address = addressName.toString();
+			}
+		} catch (IOException e1) {
+		}
+		return address;
 	}
 
 	@Override
@@ -149,11 +160,117 @@ public class MapActivity extends Activity implements
 		// as you specify a parent activity in AndroidManifest.xml.
 		int id = item.getItemId();
 		if (id == R.id.action_settings) {
+			//show settings/info
 			return true;
+		}
+		if(id == R.id.save){
+			//save current point as favorite
+			//saveFavorite();
+		}
+		if(id == R.id.share){
+			//share point with everyone
+		}
+		if(id == R.id.share_meter){
+			//share parking meter point with everyone
+		}
+		if(id == R.id.clear){
+			clearSpot();
+		}
+		if(id == R.id.search){
+			//search for points
 		}
 		return super.onOptionsItemSelected(item);
 	}
 
+	private void saveCurrent(LatLng latLng, String address, String note) {
+		SharedPreferences sp = getPreferences(MODE_PRIVATE);
+		Editor e = sp.edit();
+		JSONObject obj = new JSONObject();
+		try {
+			obj.put("lat", latLng.latitude);
+			obj.put("long", latLng.longitude);
+			obj.put("note", note);
+			obj.put("address", address);
+
+			e.putString("Current Point", obj.toString(4));
+			e.apply();
+		} catch (JSONException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+	}
+	
+	private void saveFavorite(LatLng latLng, String address, String note) {
+		SharedPreferences sp = getPreferences(MODE_PRIVATE);
+		Editor e = sp.edit();
+		JSONObject obj = new JSONObject();
+		try {
+			String favorites = sp.getString("favorites", null);
+			if(favorites != null){
+				obj = new JSONObject(favorites);
+			}
+			JSONArray array = obj.getJSONArray("favorites");
+			JSONObject newObj = new JSONObject();
+			newObj.put("lat", latLng.latitude);
+			newObj.put("long", latLng.longitude);
+			newObj.put("note", note);
+			newObj.put("address", address);
+
+			array.put(newObj);
+			obj.put("favorite", array);
+			e.putString("Current Point", obj.toString(4));
+			e.apply();
+		} catch (JSONException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+	}
+
+	private void shareSpot() {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	private void shareMeterSpot() {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	private void clearSpot() {
+		AlertDialog.Builder b = new AlertDialog.Builder(this);
+		b.setMessage(getString(R.string.confirm));
+		b.setPositiveButton(R.string.ok, new OnClickListener() {
+			
+			@Override
+			public void onClick(DialogInterface arg0, int arg1) {
+				SharedPreferences sp = getPreferences(MODE_PRIVATE);
+				Editor e = sp.edit();
+				if(sp.contains("Current Point")){
+					String pointString = sp.getString("Current Point", null);
+					e.remove("Current Point");
+					e.apply();
+				}
+				if(curMarker != null){
+					curMarker.remove();
+					curMarker = null;
+				}
+			}
+		});
+		b.setNegativeButton(R.string.cancel, new OnClickListener() {
+			
+			@Override
+			public void onClick(DialogInterface dialog, int which) {
+			}
+		});
+		AlertDialog d = b.create();
+		d.show();
+	}
+	
+	private void searchSpots() {
+		// TODO Auto-generated method stub
+		
+	}
+	
 	@Override
 	public void onConnectionFailed(ConnectionResult arg0) {
 		// TODO Auto-generated method stub
