@@ -47,6 +47,7 @@ public class MapActivity extends Activity implements
 	private Location mCurrentLocation;
 	private LocationRequest mLocationRequest;
 	private Marker curMarker;
+	private JSONObject curObject;
 	private final static int CONNECTION_FAILURE_RESOLUTION_REQUEST = 9000;
 
 	// Milliseconds per second
@@ -106,11 +107,11 @@ public class MapActivity extends Activity implements
 		if(sp.contains("Current Point")){
 			String pointString = sp.getString("Current Point", null);
 			try {
-				JSONObject obj = new JSONObject(pointString);
-				double latD = obj.getDouble("lat");
-				double lonD = obj.getDouble("long");
-				String note = obj.optString("note");
-				String address = obj.getString("address");
+				curObject = new JSONObject(pointString);
+				double latD = curObject.getDouble("lat");
+				double lonD = curObject.getDouble("long");
+				String note = curObject.optString("note");
+				String address = curObject.getString("address");
 				LatLng latLng = new LatLng(latD, lonD);
 				curMarker = map.addMarker(new MarkerOptions().position(latLng).title(address));
 			} catch (JSONException e) {
@@ -165,7 +166,7 @@ public class MapActivity extends Activity implements
 		}
 		if(id == R.id.save){
 			//save current point as favorite
-			//saveFavorite();
+			saveFavorite();
 		}
 		if(id == R.id.share){
 			//share point with everyone
@@ -200,7 +201,7 @@ public class MapActivity extends Activity implements
 		}
 	}
 	
-	private void saveFavorite(LatLng latLng, String address, String note) {
+	private void saveFavorite() {
 		SharedPreferences sp = getPreferences(MODE_PRIVATE);
 		Editor e = sp.edit();
 		JSONObject obj = new JSONObject();
@@ -210,13 +211,8 @@ public class MapActivity extends Activity implements
 				obj = new JSONObject(favorites);
 			}
 			JSONArray array = obj.getJSONArray("favorites");
-			JSONObject newObj = new JSONObject();
-			newObj.put("lat", latLng.latitude);
-			newObj.put("long", latLng.longitude);
-			newObj.put("note", note);
-			newObj.put("address", address);
-
-			array.put(newObj);
+			array.put(curObject);
+			
 			obj.put("favorite", array);
 			e.putString("Current Point", obj.toString(4));
 			e.apply();
@@ -253,6 +249,7 @@ public class MapActivity extends Activity implements
 				if(curMarker != null){
 					curMarker.remove();
 					curMarker = null;
+					curObject = null;
 				}
 			}
 		});
